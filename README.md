@@ -4,5 +4,6 @@ GoBin is a simple tool to move things to trash from the cli. This means files ar
 
 # To Do
 
-- [ ] setup sqlite to track original location and file name
-- [ ] restore files based on sqlite info
+- [ ] store data in json format
+- [ ] restore files based on json data 
+- [ ] store deleted files as a uuid with the original name and path in the json

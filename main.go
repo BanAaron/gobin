@@ -1,57 +1,73 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
+	"path/filepath"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-// panicOnError will panic off error is not nil
-func panicOnError(err error) {
-	if err != nil {
-		panic(err)
-	}
+const trashDir string = "./Trash"
+const filesDir string = "./Trash/files"
+const infoDir string = "./Trash/info"
+
+type fileInfo struct {
+	UUID        string
+	FileName    string
+	FilePath    string
+	DeletedDate int64
+	FileSize    int
 }
 
-// copyFileToTrash will create a copy of a file in the Trash directory and the remove
-// the original file
-func copyFileToTrash(sourceFile string) (err error) {
-	reader, err := os.Open(sourceFile)
-	panicOnError(err)
-	defer func() {
-		err := reader.Close()
-		panicOnError(err)
-	}()
+func (fi fileInfo) String() string {
+	return fmt.Sprintf("%s %s %s %d %d", fi.UUID, fi.FileName, fi.FilePath, fi.DeletedDate, fi.FileSize)
+}
 
-	outputFileName := appendUnixTime(sourceFile)
-	writer, err := os.Create(outputFileName)
+// copyFileToTrash will create a copy of a file in the Trash directory and then
+// remove the original file
+func copyFileToTrash(fileName string) (err error) {
+	// create uuid
+	uid, err := uuid.NewUUID()
+	if err != nil {
+		return fmt.Errorf("copyFileToTrash: Could not generate UUID. %s", err)
+	}
+	// get unix time
+	unixTime := time.Now().Unix()
+	// get file path
+	filePath, err := filepath.Abs(fileName)
+	if err != nil {
+		return fmt.Errorf("copyFileToTrash: Could not get absolute path. %s", err)
+	}
+	// create json
+	fi := fileInfo{uid.String(), fileName, filePath, unixTime, 0}
+	fiJson, err := json.Marshal(fi)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		err := writer.Close()
-		panicOnError(err)
-	}()
-	_, err = writer.ReadFrom(reader)
-	panicOnError(err)
-	if err == nil {
-		err := os.Remove(sourceFile)
-		panicOnError(err)
-	}
+	fmt.Println(fiJson)
+
 	return nil
 }
 
-// appendUnixTime will append a file name with double underscore _^_ and then
-// the current unix time.
-//
-// For example `foo.txt` would become `foo.text__1731550759`
-func appendUnixTime(sourceFile string) string {
-	unixTime := "__" + strconv.FormatInt(time.Now().Unix(), 10)
-	return "./Trash/" + sourceFile + unixTime
+// init sets up the test files for local development. This should be removed
+func init() {
+	_, err := os.Create("test.txt")
+	if err != nil {
+		panic(err)
+	}
+	testFileContents := []byte("Hello, World!\n")
+	err = os.WriteFile("test.txt", testFileContents, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
+	fmt.Println(trashDir, filesDir, infoDir)
+
 	args := os.Args
 	if len(args) == 1 {
 		fmt.Println("Please provide a file.")
@@ -60,5 +76,7 @@ func main() {
 	fileName := args[1]
 
 	err := copyFileToTrash(fileName)
-	panicOnError(err)
+	if err != nil {
+		panic(err)
+	}
 }
