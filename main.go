@@ -36,7 +36,7 @@ func (fi fileInfo) Marshall() (FileInfoJson []byte, err error) {
 
 // newFileInfo creates a new fileInfo
 func newFileInfo(fileName string) (fi fileInfo, err error) {
-	uid, err := uuid.NewUUID()
+	uid, err := uuid.NewRandom()
 	if err != nil {
 		return fi, fmt.Errorf("copyFileToTrash: Could not generate UUID. %s", err)
 	}
